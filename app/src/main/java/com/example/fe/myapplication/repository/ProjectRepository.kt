@@ -17,7 +17,8 @@ class ProjectRepository(
 
     @OptIn(ExperimentalPagingApi::class)
     fun getProjectStream(nameQuery: String, locationQuery: String): Flow<PagingData<Project>> {
-        return Pager(config = PagingConfig(pageSize = 10),
+        return Pager(
+            config = PagingConfig(pageSize = 10),
             remoteMediator = ProjectRemoteMediator(database, projectService, nameQuery),
             pagingSourceFactory = {
                 ProjectPagingSource(
