@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
@@ -22,14 +21,12 @@ import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -40,7 +37,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.fe.myapplication.modelview.Project
-import com.example.fe.myapplication.modelview.ProjectState
+import com.example.fe.myapplication.modelview.ProjectUiState
 import com.example.fe.myapplication.modelview.ProjectViewModel
 import kotlinx.coroutines.launch
 
@@ -98,7 +95,6 @@ fun MainScreen() {
     }
 }
 
-
 @Composable
 fun ProjectListScreen(
     navController: NavHostController,
@@ -107,24 +103,7 @@ fun ProjectListScreen(
     var searchName by remember { mutableStateOf("") }
     var searchLocation by remember { mutableStateOf("") }
 
-    // 获取项目状态
-    val projectState by projectViewModel.projectState.collectAsState()
-
-    // 创建 LazyListState 用于监听滚动
-    val listState = rememberLazyListState()
-
-    // 通过副作用监控列表滚动
-    val coroutineScope = rememberCoroutineScope()
-    LaunchedEffect(listState) {
-        coroutineScope.launch {
-            snapshotFlow { listState.firstVisibleItemIndex + listState.layoutInfo.visibleItemsInfo.size >= listState.layoutInfo.totalItemsCount - 2 }
-                .collect { shouldLoadMore ->
-                    if (shouldLoadMore) {
-                        projectViewModel.loadProjects()
-                    }
-                }
-        }
-    }
+    val uiState by projectViewModel.uiState.collectAsState()
 
     Column(
         modifier = Modifier
@@ -170,40 +149,38 @@ fun ProjectListScreen(
             }
         }
 
-        // 项目列表
-        when (projectState) {
-            is ProjectState.Loading -> {
+        // 根据不同的状态展示不同的 UI
+        when (uiState) {
+            is ProjectUiState.Loading -> {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
             }
 
-            is ProjectState.Success -> {
-                val projects = (projectState as ProjectState.Success).projects
+            is ProjectUiState.Success -> {
+                val projects = (uiState as ProjectUiState.Success).projects
 
-                LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(projects) { project ->
                         ProjectItem(navController, project)
                     }
 
+                    // 分页加载更多
                     item {
-                        if (projects.isNotEmpty()) {
-                            CircularProgressIndicator(
-                                modifier = Modifier
-                                    .align(Alignment.CenterHorizontally)
-                                    .padding(16.dp)
-                            )
+                        Button(
+                            onClick = { projectViewModel.loadProjects() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            Text("加载更多")
                         }
                     }
-                    // item {
-                    //     Button(onClick = { projectViewModel.loadProjects() }) {
-                    //         Text("加载更多")
-                    //     }
-                    // }
                 }
             }
 
-            is ProjectState.Error -> {
+            is ProjectUiState.Error -> {
+                val errorMessage = (uiState as ProjectUiState.Error).message
                 Text(
-                    text = (projectState as ProjectState.Error).message,
+                    text = errorMessage,
                     color = MaterialTheme.colors.error,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
@@ -211,6 +188,7 @@ fun ProjectListScreen(
         }
     }
 }
+
 
 @Composable
 fun ProjectItem(
