@@ -1,33 +1,18 @@
 package com.example.fe.myapplication
 
 
+import ProjectViewModel
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.rememberScaffoldState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -36,11 +21,10 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.fe.myapplication.modelview.Project
-import com.example.fe.myapplication.modelview.ProjectUiState
-import com.example.fe.myapplication.modelview.ProjectViewModel
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
+import com.example.fe.myapplication.model.Project
 import kotlinx.coroutines.launch
-
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -100,90 +84,60 @@ fun ProjectListScreen(
     navController: NavHostController,
     projectViewModel: ProjectViewModel = viewModel()
 ) {
-    var searchName by remember { mutableStateOf("") }
-    var searchLocation by remember { mutableStateOf("") }
+    val pagingData = projectViewModel.getProjectStream("", "").collectAsLazyPagingItems()
 
-    val uiState by projectViewModel.uiState.collectAsState()
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // 搜索栏
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-        ) {
-            BasicTextField(
-                value = searchName,
-                onValueChange = { searchName = it },
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 8.dp),
-                decorationBox = { innerTextField ->
-                    Box(Modifier.padding(8.dp)) {
-                        if (searchName.isEmpty()) Text("项目名称")
-                        innerTextField()
-                    }
+    LazyColumn(modifier = Modifier
+        .fillMaxSize()
+        .padding(16.dp)) {
+        items(pagingData) { project ->
+            project?.let {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { navController.navigate("projectDetail/${project.name}") }
+                        .padding(16.dp)
+                ) {
+                    Text(text = project.name, modifier = Modifier.weight(1f))
+                    Text(text = project.location, modifier = Modifier.weight(1f))
+                    Text(text = project.status, modifier = Modifier.weight(1f))
                 }
-            )
-            BasicTextField(
-                value = searchLocation,
-                onValueChange = { searchLocation = it },
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 8.dp),
-                decorationBox = { innerTextField ->
-                    Box(Modifier.padding(8.dp)) {
-                        if (searchLocation.isEmpty()) Text("场地")
-                        innerTextField()
-                    }
-                }
-            )
-            Button(onClick = {
-                projectViewModel.searchProjects(searchName, searchLocation)
-            }) {
-                Text("查询")
             }
         }
 
-        // 根据不同的状态展示不同的 UI
-        when (uiState) {
-            is ProjectUiState.Loading -> {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-            }
-
-            is ProjectUiState.Success -> {
-                val projects = (uiState as ProjectUiState.Success).projects
-
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(projects) { project ->
-                        ProjectItem(navController, project)
-                    }
-
-                    // 分页加载更多
+        // 显示加载状态或错误信息
+        pagingData.apply {
+            when {
+                loadState.refresh is LoadState.Loading -> {
                     item {
-                        Button(
-                            onClick = { projectViewModel.loadProjects() },
-                            modifier = Modifier
+                        CircularProgressIndicator(
+                            Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp)
-                        ) {
-                            Text("加载更多")
-                        }
+                                .padding(16.dp))
                     }
                 }
-            }
 
-            is ProjectUiState.Error -> {
-                val errorMessage = (uiState as ProjectUiState.Error).message
-                Text(
-                    text = errorMessage,
-                    color = MaterialTheme.colors.error,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
+                loadState.append is LoadState.Loading -> {
+                    item {
+                        CircularProgressIndicator(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp))
+                    }
+                }
+
+                loadState.refresh is LoadState.Error -> {
+                    val error = pagingData.loadState.refresh as LoadState.Error
+                    item {
+                        Text(text = "加载失败: ${error.error.localizedMessage}")
+                    }
+                }
+
+                loadState.append is LoadState.Error -> {
+                    val error = pagingData.loadState.append as LoadState.Error
+                    item {
+                        Text(text = "加载更多失败: ${error.error.localizedMessage}")
+                    }
+                }
             }
         }
     }
