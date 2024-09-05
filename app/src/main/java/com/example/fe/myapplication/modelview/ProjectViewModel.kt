@@ -17,33 +17,26 @@ sealed class ProjectState {
 
 class ProjectViewModel : ViewModel() {
 
-    // 状态 Flow
     private val _projectState = MutableStateFlow<ProjectState>(ProjectState.Loading)
     val projectState: StateFlow<ProjectState> = _projectState
 
-    // 分页参数
     private var currentPage = 1
     private val pageSize = 10
-
-    private var allProjects: List<Project> = listOf(
-        Project("项目A", "场地1", "进行中"),
-        Project("项目B", "场地2", "已完成"),
-        Project("项目C", "场地3", "未开始"),
-        Project("项目D", "场地4", "进行中"),
-        // 添加更多项目
-    )
+    private var isLoading = false
+    private var allProjects: List<Project> = generateDummyProjects()
 
     private var filteredProjects: List<Project> = allProjects
+    private var displayedProjects: MutableList<Project> = mutableListOf()
 
     init {
-        // 加载第一页数据
         loadProjects()
     }
 
-    // 加载项目数据
     fun loadProjects() {
+        if (isLoading) return  // 防止重复加载
         viewModelScope.launch {
             try {
+                isLoading = true
                 _projectState.value = ProjectState.Loading
                 // 模拟网络延迟
                 delay(1000)
@@ -52,14 +45,16 @@ class ProjectViewModel : ViewModel() {
                 val end = (start + pageSize).coerceAtMost(filteredProjects.size)
 
                 if (start < end) {
-                    val currentProjects = filteredProjects.subList(0, end)
-                    _projectState.value = ProjectState.Success(currentProjects)
+                    displayedProjects.addAll(filteredProjects.subList(start, end))
+                    _projectState.value = ProjectState.Success(displayedProjects)
                     currentPage++
                 } else {
                     _projectState.value = ProjectState.Error("没有更多项目了")
                 }
             } catch (e: Exception) {
                 _projectState.value = ProjectState.Error("加载项目失败：${e.message}")
+            } finally {
+                isLoading = false
             }
         }
     }
@@ -70,8 +65,17 @@ class ProjectViewModel : ViewModel() {
             project.name.contains(name, ignoreCase = true) &&
                     project.location.contains(location, ignoreCase = true)
         }
-        currentPage = 1 // 重置分页
-        loadProjects() // 重新加载数据
+        // 重置分页
+        currentPage = 1
+        // 重新加载数据
+        displayedProjects.clear()
+        loadProjects()
+    }
+
+    private fun generateDummyProjects(): List<Project> {
+        return (1..50).map { i ->
+            Project("项目 $i", "场地 $i", if (i % 2 == 0) "进行中" else "已完成")
+        }
     }
 }
 

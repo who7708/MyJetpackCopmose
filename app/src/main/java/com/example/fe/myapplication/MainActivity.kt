@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
@@ -21,12 +22,14 @@ import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -36,6 +39,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.fe.myapplication.modelview.Project
 import com.example.fe.myapplication.modelview.ProjectState
 import com.example.fe.myapplication.modelview.ProjectViewModel
 import kotlinx.coroutines.launch
@@ -103,8 +107,24 @@ fun ProjectListScreen(
     var searchName by remember { mutableStateOf("") }
     var searchLocation by remember { mutableStateOf("") }
 
-    // 通过 StateFlow 收集项目数据状态
+    // 获取项目状态
     val projectState by projectViewModel.projectState.collectAsState()
+
+    // 创建 LazyListState 用于监听滚动
+    val listState = rememberLazyListState()
+
+    // 通过副作用监控列表滚动
+    val coroutineScope = rememberCoroutineScope()
+    LaunchedEffect(listState) {
+        coroutineScope.launch {
+            snapshotFlow { listState.firstVisibleItemIndex + listState.layoutInfo.visibleItemsInfo.size >= listState.layoutInfo.totalItemsCount - 2 }
+                .collect { shouldLoadMore ->
+                    if (shouldLoadMore) {
+                        projectViewModel.loadProjects()
+                    }
+                }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -150,7 +170,7 @@ fun ProjectListScreen(
             }
         }
 
-        // 观察加载状态
+        // 项目列表
         when (projectState) {
             is ProjectState.Loading -> {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
@@ -159,24 +179,25 @@ fun ProjectListScreen(
             is ProjectState.Success -> {
                 val projects = (projectState as ProjectState.Success).projects
 
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                     items(projects) { project ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { navController.navigate("projectDetail/${project.name}") }
-                                .padding(16.dp)
-                        ) {
-                            Text(text = project.name, modifier = Modifier.weight(1f))
-                            Text(text = project.location, modifier = Modifier.weight(1f))
-                            Text(text = project.status, modifier = Modifier.weight(1f))
-                        }
+                        ProjectItem(navController, project)
                     }
+
                     item {
-                        Button(onClick = { projectViewModel.loadProjects() }) {
-                            Text("加载更多")
+                        if (projects.isNotEmpty()) {
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .align(Alignment.CenterHorizontally)
+                                    .padding(16.dp)
+                            )
                         }
                     }
+                    // item {
+                    //     Button(onClick = { projectViewModel.loadProjects() }) {
+                    //         Text("加载更多")
+                    //     }
+                    // }
                 }
             }
 
@@ -188,6 +209,23 @@ fun ProjectListScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun ProjectItem(
+    navController: NavHostController,
+    project: Project
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { navController.navigate("projectDetail/${project.name}") }
+            .padding(16.dp)
+    ) {
+        Text(text = project.name, modifier = Modifier.weight(1f))
+        Text(text = project.location, modifier = Modifier.weight(1f))
+        Text(text = project.status, modifier = Modifier.weight(1f))
     }
 }
 
