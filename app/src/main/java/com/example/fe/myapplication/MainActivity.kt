@@ -20,6 +20,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -27,10 +28,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.fe.myapplication.modelview.ProjectViewModel
 import kotlinx.coroutines.launch
 
 
@@ -42,8 +45,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-data class Project(val name: String, val location: String, val status: String)
 
 @Composable
 fun MainScreen() {
@@ -79,7 +80,7 @@ fun MainScreen() {
             }
         }
     ) {
-        it.calculateTopPadding();
+        it.calculateTopPadding()
         NavHost(navController, startDestination = "projectList") {
             composable("projectList") { ProjectListScreen(navController) }
             composable("projectDetail/{projectName}") { backStackEntry ->
@@ -89,15 +90,15 @@ fun MainScreen() {
     }
 }
 
+
 @Composable
-fun ProjectListScreen(navController: NavHostController) {
+fun ProjectListScreen(
+    navController: NavHostController,
+    projectViewModel: ProjectViewModel = viewModel()
+) {
     var searchName by remember { mutableStateOf("") }
     var searchLocation by remember { mutableStateOf("") }
-    val projectList = listOf(
-        Project("项目A", "场地1", "进行中"),
-        Project("项目B", "场地2", "已完成"),
-        Project("项目C", "场地3", "未开始")
-    )
+    val projectList by projectViewModel.projectList.observeAsState(emptyList())
 
     Column(
         modifier = Modifier
@@ -136,7 +137,9 @@ fun ProjectListScreen(navController: NavHostController) {
                     }
                 }
             )
-            Button(onClick = { /* 执行查询 */ }) {
+            Button(onClick = {
+                projectViewModel.searchProjects(searchName, searchLocation)
+            }) {
                 Text("查询")
             }
         }
@@ -158,6 +161,7 @@ fun ProjectListScreen(navController: NavHostController) {
         }
     }
 }
+
 
 @Composable
 fun ProjectDetailScreen(projectName: String) {
