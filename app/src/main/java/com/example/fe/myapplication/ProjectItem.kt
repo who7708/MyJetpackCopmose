@@ -45,7 +45,8 @@ fun ProjectListScreen() {
 
             else -> {
                 LazyColumn {
-                    items(projectItems) { item ->
+                    items(projectItems.itemCount) { index ->
+                        val item = projectItems[index]
                         if (item != null) {
                             Text(text = item.name, modifier = Modifier.padding(8.dp))
                         }
