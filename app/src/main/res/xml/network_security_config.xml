@@ -1,4 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
+
+<!--
+解决局域网请求网络问题：
+方法一：在res文件夹下创建一个xml文件夹，然后创建一个network_security_config.xml文件，文件内容如下：
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
+接着，在AndroidManifest.xml文件下的application标签增加以下属性
+<application
+    android:networkSecurityConfig="@xml/network_security_config"
+    ...
+</application>
+
+方法二：在AndroidManifest.xml配置文件的<application>标签中直接插入
+<application
+   ...
+    android:usesCleartextTraffic="true">
+   ...
+</application>
+-->
 <network-security-config>
     <base-config cleartextTrafficPermitted="true" />
     <!--<domain-config cleartextTrafficPermitted="true">-->
@@ -7,11 +27,3 @@
     <!--    <domain includeSubdomains="false">192.168.95.0/24</domain>-->
     <!--</domain-config>-->
 </network-security-config>
-
-    <!--
-    <application
-       ...
-        android:usesCleartextTraffic="true">
-       ...
-    </application>
-    -->
