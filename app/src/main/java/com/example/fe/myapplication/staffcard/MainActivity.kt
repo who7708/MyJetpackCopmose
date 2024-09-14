@@ -1,6 +1,9 @@
 package com.example.fe.myapplication.staffcard
 
+import android.content.Context
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -39,12 +42,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.fe.myapplication.R
+import com.example.fe.myapplication.model.ApiResponse
 import com.example.fe.myapplication.network.HttpClient
+import com.google.gson.Gson
 import retrofit2.Call
 
 /**
@@ -66,6 +72,7 @@ fun MyApp() {
     val context = LocalContext.current
     val isLoggedIn = remember { mutableStateOf(false) }
     val query = remember { mutableStateOf("") }
+    val apiService by lazy { HttpClient.create(AppApiService::class.java) }
 
     val searchResults = remember {
         mutableStateOf<List<SearchResult>?>(
@@ -85,25 +92,28 @@ fun MyApp() {
     }
 
     if (!isLoggedIn.value) {
-        LoginScreen { loggedIn ->
+        LoginScreen(context, apiService) { loggedIn ->
             isLoggedIn.value = loggedIn
         }
     } else {
-        val apiService by lazy { HttpClient.create(AppApiService::class.java) }
-        SearchScreen(query, searchResults, apiService)
+        SearchScreen(context, apiService, query, searchResults)
     }
 }
 
 @Composable
-fun LoginScreen(onLoginSuccess: (Boolean) -> Unit) {
+fun LoginScreen(
+    context: Context,
+    apiService: AppApiService,
+    onLoginSuccess: (Boolean) -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        Color(0xFF6798B2),
-                        Color(0xFF4CAFA3)
+                        Color(0xFF67B26F),
+                        Color(0xFF4CAF50)
                     )
                 )
             ),
@@ -124,23 +134,54 @@ fun LoginScreen(onLoginSuccess: (Boolean) -> Unit) {
                     style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
+                val usernameState = remember { mutableStateOf("") }
+                val passwordState = remember { mutableStateOf("") }
                 OutlinedTextField(
-                    value = "",
-                    onValueChange = {},
+                    value = usernameState.value,
+                    onValueChange = { usernameState.value = it },
                     label = { Text("Username") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
-                    value = "",
-                    onValueChange = {},
+                    value = passwordState.value,
+                    onValueChange = { passwordState.value = it },
                     label = { Text("Password") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = PasswordVisualTransformation()
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = {
-                        onLoginSuccess(true)
+                        val request = LoginRequest()
+                        request.username = usernameState.value
+                        request.password = passwordState.value
+                        apiService.login(request)
+                            .enqueue(object : retrofit2.Callback<ApiResponse<LoginResponse>> {
+                                override fun onResponse(
+                                    call: Call<ApiResponse<LoginResponse>>,
+                                    response: retrofit2.Response<ApiResponse<LoginResponse>>
+                                ) {
+                                    if (response.isSuccessful) {
+                                        val loginResponse = response.body()
+                                        val json = Gson().toJson(loginResponse)
+                                        Log.e("apiService.login", "登录成功 $json")
+                                        // 假设登录成功后设置登录状态为 true
+                                        onLoginSuccess(true)
+                                    } else {
+                                        // 处理登录失败情况
+                                        Log.e("apiService.login", "onFailure: 登录失败")
+                                    }
+                                }
+
+                                override fun onFailure(
+                                    call: Call<ApiResponse<LoginResponse>>,
+                                    t: Throwable
+                                ) {
+                                    // 处理网络错误等情况
+                                    Log.e("apiService.search", "onFailure: 登录失败", t)
+                                }
+                            })
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -153,9 +194,10 @@ fun LoginScreen(onLoginSuccess: (Boolean) -> Unit) {
 
 @Composable
 fun SearchScreen(
+    context: Context,
+    apiService: AppApiService,
     query: MutableState<String>,
     searchResults: MutableState<List<SearchResult>?>,
-    apiService: AppApiService
 ) {
     Box(
         modifier = Modifier
@@ -195,21 +237,40 @@ fun SearchScreen(
                     IconButton(
                         onClick = {
                             apiService.search(query.value)
-                                .enqueue(object : retrofit2.Callback<List<SearchResult>> {
+                                .enqueue(object :
+                                    retrofit2.Callback<ApiResponse<List<SearchResult>>> {
                                     override fun onResponse(
-                                        call: Call<List<SearchResult>>,
-                                        response: retrofit2.Response<List<SearchResult>>
+                                        call: Call<ApiResponse<List<SearchResult>>>,
+                                        response: retrofit2.Response<ApiResponse<List<SearchResult>>>
                                     ) {
-                                        if (response.isSuccessful) {
-                                            searchResults.value = response.body()
+                                        val res = response.body()!!
+                                        if (response.isSuccessful && res.isSuccess) {
+                                            searchResults.value = res.data
+                                        } else {
+                                            // Handle error
+                                            Log.e(
+                                                "apiService.search",
+                                                "onFailure: 搜索失败: ${res.comments}"
+                                            )
+                                            Toast.makeText(
+                                                context,
+                                                "搜索失败${res.comments}",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                         }
                                     }
 
                                     override fun onFailure(
-                                        call: Call<List<SearchResult>>,
+                                        call: Call<ApiResponse<List<SearchResult>>>,
                                         t: Throwable
                                     ) {
                                         // Handle error
+                                        Log.e("apiService.search", "onFailure: 搜索失败", t)
+                                        Toast.makeText(
+                                            context,
+                                            "搜索失败" + t.message,
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                                 })
                         }

@@ -1,6 +1,7 @@
 package com.example.fe.myapplication.network
 
 import com.example.fe.myapplication.BuildConfig
+import com.example.fe.myapplication.staffcard.PersistentCookieJar
 import okhttp3.Cache
 import okhttp3.ConnectionSpec
 import okhttp3.Interceptor
@@ -48,6 +49,7 @@ open class DefaultEnvironment : IAppEnvironment {
                         ConnectionSpec.CLEARTEXT
                     )
                 )
+                .cookieJar(PersistentCookieJar(BaseApp.application))
 
             for (interceptor in interceptors) {
                 builder.addInterceptor(interceptor)

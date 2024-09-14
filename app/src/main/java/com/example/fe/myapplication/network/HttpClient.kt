@@ -10,7 +10,7 @@ import retrofit2.Retrofit
  */
 object HttpClient {
 
-    val retrofit: Retrofit
+    private val retrofit: Retrofit
         get() = RetrofitFactory.instance.retrofit
 
     val okHttpClient: OkHttpClient
