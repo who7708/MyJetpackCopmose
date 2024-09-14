@@ -4,6 +4,7 @@ package com.example.fe.myapplication
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,14 +35,21 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.example.fe.myapplication.model.Project
 import com.example.fe.myapplication.modelview.ProjectViewModel
+import com.example.fe.myapplication.ui.theme.MyApplicationTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
-            MainScreen()
+            MyApplicationTheme {
+                MainScreen()
+            }
         }
+        // setContent {
+        //     MainScreen()
+        // }
     }
 }
 
@@ -204,4 +212,20 @@ fun ProjectDetailScreen(projectName: String) {
 @Composable
 fun DefaultPreview() {
     MainScreen()
+}
+
+@Composable
+fun Greeting(name: String, modifier: Modifier = Modifier) {
+    Text(
+        text = "Hello $name!",
+        modifier = modifier
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun GreetingPreview() {
+    MyApplicationTheme {
+        Greeting("Android")
+    }
 }
