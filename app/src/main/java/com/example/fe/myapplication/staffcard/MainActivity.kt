@@ -122,7 +122,7 @@ fun MyApp() {
             isLoggedIn.value = loggedIn
         }
     } else {
-        SearchScreen(context, apiService, staffCardSearchParam, searchResults)
+        SearchScreen(context, apiService, cardNo, realName, idNo, cellphone, searchResults)
     }
 }
 
@@ -222,7 +222,10 @@ fun LoginScreen(
 fun SearchScreen(
     context: Context,
     apiService: AppApiService,
-    staffCardSearchParam: MutableState<StaffCardSearchParam>,
+    cardNo: MutableState<String>,
+    realName: MutableState<String>,
+    idNo: MutableState<String>,
+    cellphone: MutableState<String>,
     searchResults: MutableState<List<SearchResult>?>,
 ) {
     Box(
@@ -253,8 +256,8 @@ fun SearchScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     OutlinedTextField(
-                        value = staffCardSearchParam.value.cardNo ?: "",
-                        onValueChange = { staffCardSearchParam.value.cardNo = it },
+                        value = cardNo.value,
+                        onValueChange = { cardNo.value = it },
                         label = { Text("工作证号") },
                         // singleLine = true,
                         modifier = Modifier
@@ -263,8 +266,8 @@ fun SearchScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     OutlinedTextField(
-                        value = staffCardSearchParam.value.realName ?: "",
-                        onValueChange = { staffCardSearchParam.value.realName = it },
+                        value = realName.value,
+                        onValueChange = { realName.value = it },
                         label = { Text("姓名") },
                         // singleLine = true,
                         modifier = Modifier
@@ -273,8 +276,8 @@ fun SearchScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     OutlinedTextField(
-                        value = staffCardSearchParam.value.idNo ?: "",
-                        onValueChange = { staffCardSearchParam.value.idNo = it },
+                        value = idNo.value,
+                        onValueChange = { idNo.value = it },
                         label = { Text("身份证号") },
                         // singleLine = true,
                         modifier = Modifier
@@ -283,8 +286,8 @@ fun SearchScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     OutlinedTextField(
-                        value = staffCardSearchParam.value.cellphone ?: "",
-                        onValueChange = { staffCardSearchParam.value.cellphone = it },
+                        value = cellphone.value,
+                        onValueChange = { cellphone.value = it },
                         label = { Text("手机号") },
                         // singleLine = true,
                         modifier = Modifier
@@ -295,8 +298,11 @@ fun SearchScreen(
                     IconButton(
                         onClick = {
                             apiService.acStaffCardsQuery(
-                                acShowId = "",
-                                realName = query.value,
+                                acShowId = "66d5a5123db3150001467ca9",
+                                cardNo = cardNo.value,
+                                realName = realName.value,
+                                idNo = idNo.value,
+                                cellphone = cellphone.value,
                             )
                                 .enqueue(object :
                                     retrofit2.Callback<ApiResponse<List<SearchResult>>> {
@@ -307,6 +313,11 @@ fun SearchScreen(
                                         val res = response.body()!!
                                         if (response.isSuccessful && res.isSuccess) {
                                             searchResults.value = res.data
+
+                                            cardNo.value = ""
+                                            realName.value = ""
+                                            idNo.value = ""
+                                            cellphone.value = ""
                                         } else {
                                             // Handle error
                                             Log.e(
