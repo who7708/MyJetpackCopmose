@@ -93,7 +93,11 @@ class MainActivity : ComponentActivity() {
 fun MyApp() {
     val context = LocalContext.current
     val isLoggedIn = remember { mutableStateOf(false) }
-    val query = remember { mutableStateOf("") }
+    val cardNo = remember { mutableStateOf("") }
+    val realName = remember { mutableStateOf("") }
+    val idNo = remember { mutableStateOf("") }
+    val cellphone = remember { mutableStateOf("") }
+    val staffCardSearchParam = remember { mutableStateOf(StaffCardSearchParam()) }
     val apiService by lazy { HttpClient.create(AppApiService::class.java) }
 
     val searchResults = remember {
@@ -118,7 +122,7 @@ fun MyApp() {
             isLoggedIn.value = loggedIn
         }
     } else {
-        SearchScreen(context, apiService, query, searchResults)
+        SearchScreen(context, apiService, staffCardSearchParam, searchResults)
     }
 }
 
@@ -218,7 +222,7 @@ fun LoginScreen(
 fun SearchScreen(
     context: Context,
     apiService: AppApiService,
-    query: MutableState<String>,
+    staffCardSearchParam: MutableState<StaffCardSearchParam>,
     searchResults: MutableState<List<SearchResult>?>,
 ) {
     Box(
@@ -244,15 +248,47 @@ fun SearchScreen(
                     .clip(RoundedCornerShape(16.dp)),
                 backgroundColor = Color.White
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    // verticalAlignment = Alignment.CenterVertically
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     OutlinedTextField(
-                        value = query.value,
-                        onValueChange = { query.value = it },
-                        label = { Text("根据工作证号或姓名查询") },
+                        value = staffCardSearchParam.value.cardNo ?: "",
+                        onValueChange = { staffCardSearchParam.value.cardNo = it },
+                        label = { Text("工作证号") },
+                        // singleLine = true,
                         modifier = Modifier
-                            .weight(1f)
+                            // .weight(1f)
+                            .padding(8.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    OutlinedTextField(
+                        value = staffCardSearchParam.value.realName ?: "",
+                        onValueChange = { staffCardSearchParam.value.realName = it },
+                        label = { Text("姓名") },
+                        // singleLine = true,
+                        modifier = Modifier
+                            // .weight(1f)
+                            .padding(8.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    OutlinedTextField(
+                        value = staffCardSearchParam.value.idNo ?: "",
+                        onValueChange = { staffCardSearchParam.value.idNo = it },
+                        label = { Text("身份证号") },
+                        // singleLine = true,
+                        modifier = Modifier
+                            // .weight(1f)
+                            .padding(8.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    OutlinedTextField(
+                        value = staffCardSearchParam.value.cellphone ?: "",
+                        onValueChange = { staffCardSearchParam.value.cellphone = it },
+                        label = { Text("手机号") },
+                        // singleLine = true,
+                        modifier = Modifier
+                            // .weight(1f)
                             .padding(8.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
