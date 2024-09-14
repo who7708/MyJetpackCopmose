@@ -130,7 +130,7 @@ fun LoginScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Login",
+                    text = "登录",
                     style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -139,14 +139,14 @@ fun LoginScreen(
                 OutlinedTextField(
                     value = usernameState.value,
                     onValueChange = { usernameState.value = it },
-                    label = { Text("Username") },
+                    label = { Text("手机号") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = passwordState.value,
                     onValueChange = { passwordState.value = it },
-                    label = { Text("Password") },
+                    label = { Text("密码") },
                     modifier = Modifier.fillMaxWidth(),
                     visualTransformation = PasswordVisualTransformation()
                 )
@@ -185,7 +185,7 @@ fun LoginScreen(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(text = "Login")
+                    Text(text = "登录")
                 }
             }
         }
@@ -228,7 +228,7 @@ fun SearchScreen(
                     OutlinedTextField(
                         value = query.value,
                         onValueChange = { query.value = it },
-                        label = { Text("Search by name or work ID") },
+                        label = { Text("根据工作证号或姓名查询") },
                         modifier = Modifier
                             .weight(1f)
                             .padding(8.dp)
