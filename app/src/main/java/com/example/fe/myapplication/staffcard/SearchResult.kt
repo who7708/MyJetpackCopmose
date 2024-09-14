@@ -6,6 +6,6 @@ package com.example.fe.myapplication.staffcard
  */
 data class SearchResult(
     val picUrl: String?,
-    val staffCardNo: String,
+    val cardNo: String,
     val realName: String
 )

@@ -1,6 +1,9 @@
 package com.example.fe.myapplication.staffcard
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -30,13 +33,17 @@ import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -51,7 +58,18 @@ import com.example.fe.myapplication.R
 import com.example.fe.myapplication.model.ApiResponse
 import com.example.fe.myapplication.network.HttpClient
 import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import retrofit2.Call
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
 
 /**
  * @author Chris
@@ -236,7 +254,10 @@ fun SearchScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(
                         onClick = {
-                            apiService.search(query.value)
+                            apiService.acStaffCardsQuery(
+                                acShowId = "",
+                                realName = query.value,
+                            )
                                 .enqueue(object :
                                     retrofit2.Callback<ApiResponse<List<SearchResult>>> {
                                     override fun onResponse(
@@ -296,6 +317,8 @@ fun SearchScreen(
 
 @Composable
 fun SearchResultCard(result: SearchResult) {
+    val context = LocalContext.current
+    var rotationAngle by remember { mutableFloatStateOf(0f) }
     Card(
         modifier = Modifier
             .padding(8.dp)
@@ -306,21 +329,91 @@ fun SearchResultCard(result: SearchResult) {
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // if (result.picUrl != null) {
+            //     runBlocking {
+            //         val inputStream = bitmapToInputStream(result.picUrl)
+            //         val exif = ExifInterface(inputStream)
+            //         val orientation = exif.getAttributeInt(
+            //             ExifInterface.TAG_ORIENTATION,
+            //             ExifInterface.ORIENTATION_NORMAL
+            //         )
+            //         rotationAngle = when (orientation) {
+            //             ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+            //             ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+            //             ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+            //             else -> 0f
+            //         }
+            //     }
+            // }
             AsyncImage(
                 model = result.picUrl ?: "",
                 contentDescription = null,
                 placeholder = painterResource(R.drawable.placeholder_image),
                 modifier = Modifier
                     .size(60.dp)
-                    .clip(CircleShape),
+                    .clip(CircleShape)
+                    .graphicsLayer {
+                        rotationZ = rotationAngle
+                    },
                 contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column {
-                Text(text = result.staffCardNo, fontWeight = FontWeight.Bold)
+                Text(text = result.cardNo, fontWeight = FontWeight.Bold)
                 Text(text = result.realName)
             }
         }
+    }
+}
+
+fun bitmapToInputStream(url: String): InputStream {
+    val bitmap = flipImageHorizontally(url)
+    val outputStream = ByteArrayOutputStream()
+    bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+    return ByteArrayInputStream(outputStream.toByteArray())
+}
+
+private fun flipImageHorizontally(url: String): Bitmap {
+    return runBlocking {
+        val inputStream = convertNetworkImageToInputStream(url)
+        val bitmap = BitmapFactory.decodeStream(inputStream)
+        val matrix = Matrix()
+        matrix.postScale(-1f, 1f, bitmap.width / 2f, bitmap.height / 2f)
+        Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+    }
+}
+
+suspend fun convertNetworkImageToInputStream(imageUrl: String): InputStream? {
+    return try {
+        withContext(Dispatchers.IO) {
+            URL(imageUrl).openStream()
+        }
+    } catch (e: IOException) {
+        e.printStackTrace()
+        null
+    }
+}
+
+fun downloadImage(imageUrl: String): File? {
+    return try {
+        val url = URL(imageUrl)
+        val connection = url.openConnection() as HttpURLConnection
+        connection.doInput = true
+        connection.connect()
+        val inputStream: InputStream = connection.inputStream
+        val tempFile = File.createTempFile("image", ".jpg", null)
+        val outputStream = FileOutputStream(tempFile)
+        val buffer = ByteArray(1024)
+        var bytesRead: Int
+        while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+            outputStream.write(buffer, 0, bytesRead)
+        }
+        outputStream.close()
+        inputStream.close()
+        tempFile
+    } catch (e: IOException) {
+        e.printStackTrace()
+        null
     }
 }
 
