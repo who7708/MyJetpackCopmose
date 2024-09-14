@@ -9,10 +9,10 @@ class PersistentCookieJar(private val context: Context) : CookieJar {
     private val cookieStore = PersistentCookieStore(context)
 
     override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-        cookieStore.add(url, cookies)
+        cookieStore.addCookie(url, cookies)
     }
 
     override fun loadForRequest(url: HttpUrl): List<Cookie> {
-        return cookieStore.get(url)
+        return cookieStore.getCookie(url)
     }
 }
