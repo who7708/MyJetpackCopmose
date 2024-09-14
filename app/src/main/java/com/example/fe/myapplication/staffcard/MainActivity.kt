@@ -9,7 +9,9 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,7 +55,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
 import com.example.fe.myapplication.R
 import com.example.fe.myapplication.model.ApiResponse
 import com.example.fe.myapplication.network.HttpClient
@@ -318,7 +322,8 @@ fun SearchScreen(
 @Composable
 fun SearchResultCard(result: SearchResult) {
     val context = LocalContext.current
-    var rotationAngle by remember { mutableFloatStateOf(0f) }
+    val rotationAngle by remember { mutableFloatStateOf(0f) }
+    var showDialog by remember { mutableStateOf(false) }
     Card(
         modifier = Modifier
             .padding(8.dp)
@@ -345,8 +350,9 @@ fun SearchResultCard(result: SearchResult) {
             //         }
             //     }
             // }
+            val picUrl = result.picUrl ?: ""
             AsyncImage(
-                model = result.picUrl ?: "",
+                model = picUrl,
                 contentDescription = null,
                 placeholder = painterResource(R.drawable.placeholder_image),
                 modifier = Modifier
@@ -354,9 +360,20 @@ fun SearchResultCard(result: SearchResult) {
                     .clip(CircleShape)
                     .graphicsLayer {
                         rotationZ = rotationAngle
-                    },
+                    }
+                    .clickable { showDialog = true },
                 contentScale = ContentScale.Crop
             )
+
+            if (showDialog && picUrl.isNotBlank()) {
+                Dialog(onDismissRequest = { showDialog = false }) {
+                    Image(
+                        painter = rememberAsyncImagePainter(picUrl),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
             Spacer(modifier = Modifier.width(16.dp))
             Column {
                 Text(text = result.cardNo, fontWeight = FontWeight.Bold)
