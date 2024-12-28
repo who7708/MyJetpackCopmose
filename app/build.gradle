@@ -90,6 +90,9 @@ android {
 }
 
 dependencies {
+    implementation libs.fresco
+    implementation libs.multidex
+
     // 键值对存储
     implementation libs.mmkv.static
 
