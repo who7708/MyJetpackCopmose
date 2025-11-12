@@ -4,30 +4,24 @@ package com.example.fe.myapplication
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.MaterialTheme
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.ListItem
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -36,18 +30,44 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.fe.myapplication.modelview.Project
-import com.example.fe.myapplication.modelview.ProjectUiState
+import androidx.paging.LoadState
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
+import com.example.fe.myapplication.model.Project
 import com.example.fe.myapplication.modelview.ProjectViewModel
+import com.example.fe.myapplication.ui.theme.MyApplicationTheme
 import kotlinx.coroutines.launch
-
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
-            MainScreen()
+            MyApplicationTheme {
+                MainScreen()
+            }
         }
+        // setContent {
+        //     MainScreen()
+        // }
+    }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+fun SideMenu(navController: NavHostController) {
+    Column {
+        Text("菜单", modifier = Modifier.padding(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
+        ListItem(text = { Text("项目 1") }, modifier = Modifier.clickable {
+            navController.navigate("project1")
+        })
+        ListItem(text = { Text("项目 2") }, modifier = Modifier.clickable {
+            // 处理项目 2 的导航逻辑
+        })
+        ListItem(text = { Text("项目 3") }, modifier = Modifier.clickable {
+            // 处理项目 3 的导航逻辑
+        })
     }
 }
 
@@ -59,32 +79,26 @@ fun MainScreen() {
 
     val drawerItems = listOf("项目1", "项目2", "项目3")
 
-    Scaffold(
-        scaffoldState = scaffoldState,
-        drawerContent = {
-            Column {
-                drawerItems.forEach { item ->
-                    Text(
-                        text = item,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                when (item) {
-                                    "项目1" -> navController.navigate("projectList")
-                                    "项目2" -> { /* 项目2跳转逻辑 */
-                                    }
-
-                                    "项目3" -> { /* 项目3跳转逻辑 */
-                                    }
-                                }
-                                scope.launch { scaffoldState.drawerState.close() }
+    Scaffold(scaffoldState = scaffoldState, drawerContent = {
+        Column {
+            drawerItems.forEach { item ->
+                Text(text = item, modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        when (item) {
+                            "项目1" -> navController.navigate("projectList")
+                            "项目2" -> { /* 项目2跳转逻辑 */
                             }
-                            .padding(16.dp)
-                    )
-                }
+
+                            "项目3" -> { /* 项目3跳转逻辑 */
+                            }
+                        }
+                        scope.launch { scaffoldState.drawerState.close() }
+                    }
+                    .padding(16.dp))
             }
         }
-    ) {
+    }) {
         it.calculateTopPadding()
         NavHost(navController, startDestination = "projectList") {
             composable("projectList") { ProjectListScreen(navController) }
@@ -100,90 +114,64 @@ fun ProjectListScreen(
     navController: NavHostController,
     projectViewModel: ProjectViewModel = viewModel()
 ) {
-    var searchName by remember { mutableStateOf("") }
-    var searchLocation by remember { mutableStateOf("") }
+    val projectStream = projectViewModel.getProjectStream("", "")
+    val pagingData: LazyPagingItems<Project> = projectStream.collectAsLazyPagingItems()
 
-    val uiState by projectViewModel.uiState.collectAsState()
-
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // 搜索栏
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-        ) {
-            BasicTextField(
-                value = searchName,
-                onValueChange = { searchName = it },
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 8.dp),
-                decorationBox = { innerTextField ->
-                    Box(Modifier.padding(8.dp)) {
-                        if (searchName.isEmpty()) Text("项目名称")
-                        innerTextField()
-                    }
+        items(pagingData.itemCount) { index ->
+            val project = pagingData[index]
+            project?.let {
+                Row(modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { navController.navigate("projectDetail/${project.name}") }
+                    .padding(16.dp)) {
+                    Text(text = project.name, modifier = Modifier.weight(1f))
+                    Text(text = project.location, modifier = Modifier.weight(1f))
+                    Text(text = project.status, modifier = Modifier.weight(1f))
                 }
-            )
-            BasicTextField(
-                value = searchLocation,
-                onValueChange = { searchLocation = it },
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 8.dp),
-                decorationBox = { innerTextField ->
-                    Box(Modifier.padding(8.dp)) {
-                        if (searchLocation.isEmpty()) Text("场地")
-                        innerTextField()
-                    }
-                }
-            )
-            Button(onClick = {
-                projectViewModel.searchProjects(searchName, searchLocation)
-            }) {
-                Text("查询")
             }
         }
 
-        // 根据不同的状态展示不同的 UI
-        when (uiState) {
-            is ProjectUiState.Loading -> {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-            }
-
-            is ProjectUiState.Success -> {
-                val projects = (uiState as ProjectUiState.Success).projects
-
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(projects) { project ->
-                        ProjectItem(navController, project)
-                    }
-
-                    // 分页加载更多
+        // 显示加载状态或错误信息
+        pagingData.apply {
+            when {
+                loadState.refresh is LoadState.Loading -> {
                     item {
-                        Button(
-                            onClick = { projectViewModel.loadProjects() },
-                            modifier = Modifier
+                        CircularProgressIndicator(
+                            Modifier
                                 .fillMaxWidth()
                                 .padding(16.dp)
-                        ) {
-                            Text("加载更多")
-                        }
+                        )
                     }
                 }
-            }
 
-            is ProjectUiState.Error -> {
-                val errorMessage = (uiState as ProjectUiState.Error).message
-                Text(
-                    text = errorMessage,
-                    color = MaterialTheme.colors.error,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
+                loadState.append is LoadState.Loading -> {
+                    item {
+                        CircularProgressIndicator(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        )
+                    }
+                }
+
+                loadState.refresh is LoadState.Error -> {
+                    val error = pagingData.loadState.refresh as LoadState.Error
+                    item {
+                        Text(text = "加载失败: ${error.error.localizedMessage}")
+                    }
+                }
+
+                loadState.append is LoadState.Error -> {
+                    val error = pagingData.loadState.append as LoadState.Error
+                    item {
+                        Text(text = "加载更多失败: ${error.error.localizedMessage}")
+                    }
+                }
             }
         }
     }
@@ -192,15 +180,12 @@ fun ProjectListScreen(
 
 @Composable
 fun ProjectItem(
-    navController: NavHostController,
-    project: Project
+    navController: NavHostController, project: Project
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { navController.navigate("projectDetail/${project.name}") }
-            .padding(16.dp)
-    ) {
+    Row(modifier = Modifier
+        .fillMaxWidth()
+        .clickable { navController.navigate("projectDetail/${project.name}") }
+        .padding(16.dp)) {
         Text(text = project.name, modifier = Modifier.weight(1f))
         Text(text = project.location, modifier = Modifier.weight(1f))
         Text(text = project.status, modifier = Modifier.weight(1f))
@@ -227,4 +212,20 @@ fun ProjectDetailScreen(projectName: String) {
 @Composable
 fun DefaultPreview() {
     MainScreen()
+}
+
+@Composable
+fun Greeting(name: String, modifier: Modifier = Modifier) {
+    Text(
+        text = "Hello $name!",
+        modifier = modifier
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun GreetingPreview() {
+    MyApplicationTheme {
+        Greeting("Android")
+    }
 }

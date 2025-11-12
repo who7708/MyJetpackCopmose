@@ -25,11 +25,49 @@ android {
     }
 
     buildTypes {
-        release {
+        debug {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            buildConfigField "String", "API_KEY", "\"debug_api_key\""
+        }
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            buildConfigField "String", "API_KEY", "\"release_api_key\""
         }
     }
+    // 定义 flavor dimensions
+    flavorDimensions "environment"
+    productFlavors {
+        qa {
+            dimension "environment"
+            versionCode rootProject.ext.android["cyyVersionCode"]
+            versionName rootProject.ext.android["cyyVersionName"]
+            resValue "string", "app_name", "测试环境app"
+            applicationIdSuffix ".qa"
+            versionNameSuffix ".qa"
+            buildConfigField "Boolean", "DEBUG", "true"
+            buildConfigField 'String', 'PRODUCT_FLAVORS', '"qa"'
+            buildConfigField 'String', 'THE_KEY', '"xxx"'
+            buildConfigField 'String', 'APP_VERSION_BACKEND', '"9.9.9.gate.common"'
+            buildConfigField 'String', 'CLOUD_BASE_URL_DESC', '"测试域名"'
+            buildConfigField 'String', 'CLOUD_BASE_URL', '"http://192.168.1.4:30000/fhl_acsapi/"'
+            manifestPlaceholders = [PACKAGE_NAME: defaultConfig.applicationId + applicationIdSuffix]
+        }
+        online {
+            dimension "environment"
+            versionCode rootProject.ext.android["testVersionCode"]
+            versionName rootProject.ext.android["testVersionName"]
+            resValue "string", "app_name", "生产环境app"
+            buildConfigField "Boolean", "DEBUG", "false"
+            buildConfigField 'String', 'THE_KEY', '"xxxx"'
+            // 后端环境目前最高支持版本为2.0.9，临时处理
+            buildConfigField 'String', 'APP_VERSION_BACKEND', '"2.0.9"'
+            buildConfigField 'String', 'CLOUD_BASE_URL_DESC', '"云端域名"'
+            buildConfigField 'String', 'CLOUD_BASE_URL', '"https://192.168.1.4:30000/fhl_acsapi/"'
+        }
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -38,10 +76,11 @@ android {
         jvmTarget = '1.8'
     }
     buildFeatures {
+        buildConfig true
         compose true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion '1.5.1'
+        kotlinCompilerExtensionVersion '1.5.3'
     }
     packaging {
         resources {
@@ -51,6 +90,14 @@ android {
 }
 
 dependencies {
+    implementation libs.fresco
+    implementation libs.multidex
+
+    // 键值对存储
+    implementation libs.mmkv.static
+
+    implementation libs.androidx.compose.foundation
+
     // Retrofit
     implementation libs.retrofit
     // 用于将 JSON 转换为 Kotlin 对象
@@ -59,7 +106,9 @@ dependencies {
     implementation libs.logging.interceptor
 
     // Paging 3
-    implementation libs.paging.runtime
+    // 删除 androidx-paging-compose-android，它是不必要的
+    implementation libs.androidx.paging.compose
+    implementation libs.androidx.paging.runtime
 
     // Room
     implementation libs.androidx.room.runtime
@@ -86,11 +135,12 @@ dependencies {
     // implementation libs.androidx.material3
     implementation libs.androidx.material
     implementation libs.androidx.runtime.livedata
-    testImplementation libs.junit
-    androidTestImplementation libs.androidx.junit
-    androidTestImplementation libs.androidx.espresso.core
-    androidTestImplementation platform(libs.androidx.compose.bom)
-    androidTestImplementation libs.androidx.ui.test.junit4
+    implementation libs.coil.compose
+    // testImplementation libs.junit
+    // androidTestImplementation libs.androidx.junit
+    // androidTestImplementation libs.androidx.espresso.core
+    // androidTestImplementation platform(libs.androidx.compose.bom)
+    // androidTestImplementation libs.androidx.ui.test.junit4
     debugImplementation libs.androidx.ui.tooling
-    debugImplementation libs.androidx.ui.test.manifest
+    // debugImplementation libs.androidx.ui.test.manifest
 }
