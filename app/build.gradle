@@ -9,14 +9,14 @@ plugins {
 
 android {
     namespace 'com.example.fe.myapplication'
-    compileSdk 34
+    compileSdk libs.versions.compileSdk.get().toInteger()
 
     defaultConfig {
         applicationId "com.example.fe.myapplication"
-        minSdk 24
-        targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        minSdk libs.versions.minSdk.get().toInteger()
+        targetSdk libs.versions.targetSdk.get().toInteger()
+        versionCode libs.versions.versionCode.get().toInteger()
+        versionName libs.versions.versionName.get()
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -26,11 +26,15 @@ android {
 
     buildTypes {
         debug {
+            // 为 debug 版本添加 .debug 后缀
+            applicationIdSuffix ".debug"
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             buildConfigField "String", "API_KEY", "\"debug_api_key\""
+            debuggable true
         }
         release {
+            // release 版本通常不设置 suffix
+            // applicationIdSuffix ".release" // 可选
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             buildConfigField "String", "API_KEY", "\"release_api_key\""
@@ -78,6 +82,7 @@ android {
     buildFeatures {
         buildConfig true
         compose true
+        viewBinding true
     }
     composeOptions {
         kotlinCompilerExtensionVersion '1.5.3'
@@ -86,6 +91,10 @@ android {
         resources {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
+    }
+    dependenciesInfo {
+        includeInApk false
+        includeInBundle false
     }
 }
 
