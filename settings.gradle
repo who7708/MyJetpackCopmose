@@ -7,21 +7,37 @@ pluginManagement {
                 includeGroupByRegex("androidx.*")
             }
         }
-        // maven { url 'https://maven.aliyun.com/repository/public' }
-        // maven { url 'https://maven.aliyun.com/repository/google' }
-        // maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+        // 阿里镜像（优先级较高）
+        maven { url 'https://maven.aliyun.com/repository/public/' }
+        maven { url 'https://maven.aliyun.com/repository/google/' }
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin/' }
+
+        // 腾讯云镜像
+        maven { url 'https://mirrors.cloud.tencent.com/nexus/repository/maven-public/' }
+        maven { url 'https://mirrors.cloud.tencent.com/nexus/repository/maven-google/' }
+        maven { url 'https://mirrors.cloud.tencent.com/nexus/repository/maven-gradle-plugins/' }
+
         mavenCentral()
+        google()
         gradlePluginPortal()
     }
 }
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    // repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        // maven { url 'https://maven.aliyun.com/repository/public' }
-        // maven { url 'https://maven.aliyun.com/repository/google' }
-        // maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
-        google()
+        // 阿里镜像（优先级较高）
+        maven { url 'https://maven.aliyun.com/repository/public/' }
+        maven { url 'https://maven.aliyun.com/repository/google/' }
+        maven { url 'https://maven.aliyun.com/repository/gradle-plugin/' }
+
+        // 腾讯云镜像
+        maven { url 'https://mirrors.cloud.tencent.com/nexus/repository/maven-public/' }
+        maven { url 'https://mirrors.cloud.tencent.com/nexus/repository/maven-google/' }
+        maven { url 'https://mirrors.cloud.tencent.com/nexus/repository/maven-gradle-plugins/' }
+
         mavenCentral()
+        google()
+        gradlePluginPortal()
     }
 }
 
